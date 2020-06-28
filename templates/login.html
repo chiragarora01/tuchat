@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <div class="bg-image"></div>
+    <div class="bg-text" style="color: black; z-index: 1">
+        <h2 >Login</h2>
+    {% from "includes/_formhelpers.html" import render_field %}
+    <div>
+        <form method="POST" action="">
+        <div class="form-group">
+            {{render_field(form.username, class_="form-control")}}
+        </div>
+        <div class="form-group">
+            <label><strong>Password</strong></label>
+            <input type="password" name="password" class="form-control" value={{request.form.password}}>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

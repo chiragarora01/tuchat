@@ -1,0 +1,19 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<br>
+    <div class="bg-image"></div>
+    <div class="bg-text">
+    {% if session.logged_in == NULL%}
+        <h1>Welcome to<br> TU chat</h1>
+        <p class="lead">This is like virtual COS or G-block <br> or whatever place you want to visit<br> except H-block because it's too far</p>
+        <a href="/register" class="btn btn-primary btn-lg">Sign Up</a>
+        <a href="/login" class="btn btn-success btn-lg">Login</a>
+    {% else %}
+        <h1>Hi {{ session.s_name }}</h1>
+        <p class="lead">Just imagine this bottom blue text is in your crush voice</p>
+        <a href="/chatting/{{ session.uid }}" class="btn btn-primary btn-lg">Let's Start Chat</a>
+    {% endif %}
+</div>
+
+{% endblock %}
