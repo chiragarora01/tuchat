@@ -3,13 +3,12 @@ from flask_mysqldb import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
-import re
 import os
-from wtforms.validators import InputRequired, Length, EqualTo
+
 from wtforms.fields.html5 import EmailField
 
 app = Flask(__name__)
-app.secret_key = 'ae3oyusT'
+app.secret_key = os.urandom(24)
 
 # Config MySQL
 mysql = MySQL()
@@ -31,7 +30,6 @@ def is_logged_in(f):
         else:
             flash('Unauthorized, Please logged in', 'danger')
             return redirect(url_for('login'))
-
     return wrap
 
 
@@ -43,7 +41,6 @@ def not_logged_in(f):
             return redirect(url_for('index'))
         else:
             return f(*args, *kwargs)
-
     return wrap
 
 
@@ -52,22 +49,7 @@ def index():
     return render_template('home.html')
 
 
-@app.route('/author')
-def author():
-    return render_template('author.html')
-
-
-@app.route('/confession')
-def confession():
-    return render_template('confession1.html')
-
-
-@app.route('/dp_battle')
-def dp():
-    return render_template('pic_battle.html')
-
-
-class LoginForm(Form):  # Create Message Form
+class LoginForm(Form):    # Create Message Form
     username = StringField('Username', [validators.length(min=1)], render_kw={'autofocus': True})
 
 
@@ -80,6 +62,12 @@ def login():
         # GEt user form
         username = form.username.data
         password_candidate = request.form['password']
+
+        # Create cursor
+        cur = mysql.connection.cursor()
+
+        # Get user by username
+        result = cur.execute("SELECT * FROM users WHERE username=%s", [username])
 
         if result > 0:
             # Get stored value
@@ -115,6 +103,7 @@ def login():
 @app.route('/out')
 def logout():
     if 'uid' in session:
+
         # Create cursor
         cur = mysql.connection.cursor()
         uid = session['uid']
@@ -135,72 +124,32 @@ class RegisterForm(Form):
 
 @app.route('/register', methods=['GET', 'POST'])
 @not_logged_in
-# def register():
-#     form = RegisterForm(request.form)
-#     if request.method == 'POST' and form.validate():
-#         name = form.name.data
-#
-#         email = form.email.data
-#         username = form.username.data
-#
-#         password = sha256_crypt.encrypt(str(form.password.data))
-#
-#         # Check if account exists using MySQL
-#         # Create Cursor
-#         cur = mysql.connection.cursor()
-#         cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
-#                     (name, email, username, password))
-#
-#         # Commit cursor
-#         mysql.connection.commit()
-#
-#         # Close Connection
-#         cur.close()
-#
-#         flash('You are now registered and can login', 'success')
-#
-#         return redirect(url_for('index'))
-#
-#     return render_template('register.html', form=form)
 def register():
-    # Output message if something goes wrong...
-    msg = ''
-    # Check if "username", "password" and "email" POST requests exist (user submitted form)
-    if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
-        # Create variables for easy access
-        username = request.form['username']
-        password = request.form['password']
-        email = request.form['email']
-        # Check if account exists using MySQL
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-        account = cursor.fetchone()
-        # If account exists show error and validation checks
-        if account:
-            msg = 'Account already exists!'
-        elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-            msg = 'Invalid email address!'
-        elif not re.match(r'^[\w.+\-]+@thapar\.edu$',email):
-            msg = 'Use "@thapar.edu" for Registration'
-        elif not re.match(r'[A-Za-z0-9]+', username):
-            msg = 'Username must contain only characters and numbers!'
-        elif not username or not password or not email:
-            msg = 'Please fill out the form!'
-        elif not username or not password or not email:
-            msg = 'Please fill out the form!'
-        else:
-            # Account doesnt exists and the form data is valid, now insert new account into accounts table
-            cursor.execute('INSERT INTO users VALUES (NULL, %s, %s, %s)', (username, password, email,))
-            mysql.connection.commit()
-            msg = 'You have successfully registered!'
-    elif request.method == 'POST':
-        # Form is empty... (no POST data)
-        msg = 'Please fill out the form!'
-    # Show registration form with message (if any)
-    return render_template('register.html', msg=msg)
+    form = RegisterForm(request.form)
+    if request.method == 'POST' and form.validate():
+        name = form.name.data
+        email = form.email.data
+        username = form.username.data
+        password = sha256_crypt.encrypt(str(form.password.data))
+
+        # Create Cursor
+        cur = mysql.connection.cursor()
+        cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
+                    (name, email, username, password))
+
+        # Commit cursor
+        mysql.connection.commit()
+
+        # Close Connection
+        cur.close()
+
+        flash('You are now registered and can login', 'success')
+
+        return redirect(url_for('index'))
+    return render_template('register.html', form=form)
 
 
-class MessageForm(Form):  # Create Message Form
+class MessageForm(Form):    # Create Message Form
     body = StringField('', [validators.length(min=1)], render_kw={'autofocus': True})
 
 
@@ -255,7 +204,7 @@ def chats():
         chats = cur.fetchall()
         # Close Connection
         cur.close()
-        return render_template('chats.html', chats=chats, )
+        return render_template('chats.html', chats=chats,)
     return redirect(url_for('login'))
 
 
